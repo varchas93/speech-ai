@@ -1,0 +1,4 @@
+Flask
+openai
+openai-whisper
+pydub
