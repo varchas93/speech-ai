@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speech AI Evaluator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .output {
+      margin-top: 20px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎤 Speech-Based AI Evaluator</h2>
+
+  <label for="topic">Enter a Topic:</label>
+  <input type="text" id="topic" placeholder="e.g., Climate Change" style="width: 100%; padding: 8px;">
+  <button onclick="generateQuestion()">Generate Question</button>
+
+  <div class="output" id="questionBox"></div>
+
+  <hr />
+
+  <label for="audio">Upload Your Answer (MP3/WAV):</label><br>
+  <input type="file" id="audio" accept="audio/*">
+  <br>
+  <button onclick="submitAnswer()">Submit Answer</button>
+
+  <div class="output" id="responseBox"></div>
+
+  <script>
+    async function generateQuestion() {
+      const topic = document.getElementById('topic').value;
+      const questionBox = document.getElementById('questionBox');
+      questionBox.innerText = "Generating question...";
+
+      try {
+        const res = await fetch("http://localhost:5000/generate-question", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic })
+        });
+
+        if (!res.ok) throw new Error("Server error: " + res.status);
+
+        const data = await res.json();
+        questionBox.innerText = data.question || data.error;
+      } catch (err) {
+        questionBox.innerText = `❌ Failed to fetch question. Please ensure the backend server is running.\n${err}`;
+      }
+    }
+
+    async function submitAnswer() {
+      const audioInput = document.getElementById('audio');
+      const topic = document.getElementById('topic').value;
+      const responseBox = document.getElementById('responseBox');
+
+      if (!audioInput.files.length) {
+        alert("Please upload an audio file.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("audio", audioInput.files[0]);
+      formData.append("concept", topic);
+
+      responseBox.innerText = "Uploading and evaluating...";
+
+      try {
+        const res = await fetch("http://localhost:5000/evaluate", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) throw new Error("Server error: " + res.status);
+
+        const data = await res.json();
+        if (data.error) {
+          responseBox.innerText = data.error;
+        } else {
+          responseBox.innerText = `📝 Transcription:\n${data.transcription}\n\n📊 Evaluation:\n${data.evaluation}`;
+        }
+      } catch (err) {
+        responseBox.innerText = `❌ Failed to evaluate answer. Please ensure the backend server is running.\n${err}`;
+      }
+    }
+  </script>
+</body>
+</html>
